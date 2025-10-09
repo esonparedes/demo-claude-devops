@@ -1,0 +1,55 @@
+name: CI/CD with Claude Validation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Build
+        run: python setup.py build
+
+  unit_tests:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: pytest --junitxml=results.xml --cov=src --cov-report=xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: results.xml
+
+  claude_review:
+    runs-on: ubuntu-latest
+    needs: unit_tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: .
+      - name: Claude Review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/claude_review.py results.xml
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: claude_review
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Staging
+        run: bash scripts/deploy_staging.sh
