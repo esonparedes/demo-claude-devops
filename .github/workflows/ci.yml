@@ -52,6 +52,11 @@ jobs:
 
   claude_review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
     needs: [unit_tests, setup]
     steps:
       - uses: actions/checkout@v4
