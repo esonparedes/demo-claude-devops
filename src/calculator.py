@@ -18,3 +18,19 @@ def divide(a, b):
     if b == 0:
         raise ValueError("Cannot divide by zero")
     return a / b
+
+def power(a, b):
+    """Return a raised to the power of b."""
+    return a ** b
+
+
+def modulus(a, b):
+    """Return the remainder of a divided by b."""
+    if b == 0:
+        raise ValueError("Cannot perform modulus with zero")
+    return a % b
+
+
+def absolute(a):
+    """Return the absolute value of a number."""
+    return abs(a)
