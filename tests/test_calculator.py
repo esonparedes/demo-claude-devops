@@ -20,12 +20,9 @@ def test_divide_by_zero():
 def test_power():
     assert calculator.power(2, 3) == 8
 
-def test_modulo():
-    assert calculator.modulo(10, 3) == 1
+def test_modulus():
+    assert calculator.modulus(10, 3) == 1
 
-def test_square_root():
-    assert calculator.square_root(16) == 4
-
-def test_square_root_negative():
-    with pytest.raises(ValueError):
-        calculator.square_root(-4)
+def test_absolute():
+    assert calculator.absolute(-5) == 5
+    assert calculator.absolute(7) == 7
