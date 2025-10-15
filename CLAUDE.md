@@ -1,134 +1,134 @@
 # CLAUDE.md
 
-## Purpose
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This document defines Python coding standards, testing requirements, and deployment validations enforced in our CI/CD pipelines. It is used alongside Claude AI reviews (Anthropic) to automatically validate pipeline outcomes — build success, unit tests, coverage, security checks, and deployment policies — and to provide actionable feedback in pull requests.
+## Repository Overview
 
-**Last Updated**: 2025-10-09
+This is a Python DevOps demo project that showcases CI/CD automation with Claude AI code review integration. The project includes a simple calculator module with comprehensive test coverage and automated deployment workflows.
 
-## Scope
+## Development Commands
 
-Applies to all Python services, libraries, and scripts in this repository. It covers:
+### Environment Setup
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-- Code quality (formatting, linting, static typing)
-- Test strategy (unit, integration, coverage)
-- CI pipeline checks and gating rules
-- Deployment validation steps and post-deploy checks
-- How Claude is used to analyze artifacts and enforce standards
+# Set PYTHONPATH for local development
+export PYTHONPATH=.
+```
 
-## Python Coding Standards (must-follow)
+### Building
+```bash
+# Build the package
+python setup.py build
+```
 
-### Style & Formatting
+### Testing
+```bash
+# Run all tests with coverage
+pytest --junitxml=results.xml --cov=src --cov-report=xml --verbose
 
-- Follow PEP 8 for code layout and naming conventions.
-- Use Black for automatic formatting. Config: black --line-length 88.
-- Use isort to sort imports. Combine with Black via pre-commit.
-- Keep functions small and single-responsibility. Prefer clear names over clever code.
+# Run a single test file
+pytest tests/test_calculator.py -v
 
-### Type Safety
+# Run a specific test function
+pytest tests/test_calculator.py::test_add -v
 
-- Use type hints everywhere public functions/classes are defined.
-- Use mypy with strict or near-strict configuration in CI (mypy --strict or tuned flags).
-- Add # type: ignore only with an explanation in code comments and a linked issue when necessary.
+# Run tests without coverage
+pytest tests/ -v
+```
 
-### Static Analysis & Security
+### Code Quality
+The CI pipeline enforces code quality standards. While specific linting tools (black, isort, flake8, mypy, bandit) are referenced in CLAUDE.local.md, they are not currently installed in requirements.txt. If you need to add these checks:
 
-- Run flake8 for linting and complexity checks (max-complexity = 12).
-- Run bandit for basic security checks on Python code.
-- Integrate safety/OSS vulnerability scanning on dependencies (e.g., safety check).
+```bash
+# Install linting/formatting tools
+pip install black isort flake8 mypy bandit
 
-### Testing Practices
+# Run formatters
+black .
+isort .
 
-- Use pytest as the test runner.
-- Tests should be deterministic and not depend on external systems (use fixtures and mocking).
-- Use fixtures, parametrization, and clear arrange-act-assert style in tests.
-- Test names should describe behavior (e.g., test_add_returns_sum_for_positive_integers).
+# Run linters
+flake8 src/ tests/
+mypy src/
+bandit -r src/
+```
 
-### Documentation & Docstrings
+## Architecture
 
-- Use Google-style or NumPy-style docstrings for public modules, classes, functions.
-- Include type annotations in docstrings for any runtime or generated docs.
-- Keep README and module-level docs up-to-date with API examples.
+### Project Structure
+```
+demo-claude-devops/
+├── src/
+│   └── calculator.py       # Core calculator module with basic math operations
+├── tests/
+│   └── test_calculator.py  # Pytest-based unit tests
+├── scripts/
+│   ├── claude_review.py    # Standalone script for Claude AI test analysis
+│   └── deploy_staging.sh   # Deployment automation script
+└── .github/workflows/
+    └── ci.yml              # Main CI/CD pipeline with Claude integration
+```
 
-## Test Strategy & Requirements
+### CI/CD Pipeline Architecture
 
-### Test Types
+The GitHub Actions workflow (`.github/workflows/ci.yml`) implements a multi-stage pipeline:
 
-- Unit tests: fast, isolated, required for all modules. Must be run on every push/PR.
-- Integration tests: run on a schedule or pre-merge depending on cost/time. Use a separate job.
-- End-to-end (E2E): run in staging, not in the primary PR gate unless small smoke tests.
+1. **Setup** - Configures Python 3.11 and installs dependencies
+2. **Build** - Builds the package using setuptools
+3. **Unit Tests** - Runs pytest with coverage reporting and uploads artifacts
+4. **Claude Review** - Uses `anthropics/claude-code-action@v1` to perform automated code review on pull requests
+5. **Deploy** - Deploys to staging if all checks pass
 
-### Coverage
+### Claude AI Integration
 
-- Minimum branch or line coverage: 80% by default. Team may raise this per-service.
-- Coverage is enforced in CI; if coverage drops below threshold, the pipeline fails and Claude flags the PR.
+The repository uses Claude in two ways:
 
-### Test Outputs
+1. **GitHub Action** (`.github/workflows/ci.yml:54-89`): The `claude_review` job runs on every PR and uses the `anthropics/claude-code-action@v1` to review code quality, test coverage, security, and performance. Claude posts comments directly to the PR using `gh pr comment`.
 
-- Tests must produce machine-readable reports:
-    - JUnit XML: pytest --junitxml=results.xml
-    - Coverage XML: coverage xml -o coverage.xml (or --cov-report=xml)
-- Upload reports as artifacts for Claude analysis and for debugging.
+2. **Standalone Script** (`scripts/claude_review.py`): A Python script that analyzes pytest XML reports using the Anthropic API. It uses `claude-sonnet-4-5-20250929` model to summarize test results.
 
-## Deployment Validation
+### Key Configuration Details
 
-Before promoting to **production**, enforce the following validations:
+- **Python Version**: 3.11 (set in CI pipeline)
+- **Test Framework**: pytest with pytest-cov for coverage
+- **Coverage Reports**: Generated as both XML (for CI) and HTML (for local review in `tests/htmlcov/`)
+- **Test Artifacts**: JUnit XML (`results.xml`) and coverage XML uploaded as GitHub Actions artifacts
+- **PYTHONPATH**: Must be set to `.` for tests to import from `src/`
 
-1. **Successful Build & Tests**
-   - All builds complete without errors.
-   - All tests pass (unit, integration, smoke).
+### Module Details
 
-2. **Claude Review Pass**
-   - No critical findings reported by Claude.
-   - Coverage and quality thresholds are met.
+**src/calculator.py** provides seven mathematical functions:
+- `add(a, b)` - Addition
+- `subtract(a, b)` - Subtraction
+- `multiply(a, b)` - Multiplication
+- `divide(a, b)` - Division with zero-check (raises ValueError)
+- `power(a, b)` - Exponentiation
+- `modulus(a, b)` - Modulo with zero-check (raises ValueError)
+- `absolute(a)` - Absolute value
 
-3. **Image Tag Policy**
-   - No usage of the `latest` tag for production.
-   - Use immutable, versioned tags (e.g., `v1.0.3`).
+All functions use simple implementations and include docstrings. Error handling is implemented for division and modulus operations.
 
-4. **Secrets & Configuration Check**
-   - Ensure no plaintext secrets appear in artifacts or logs.
-   - Validate environment variables via secrets manager (Vault, AWS Secrets Manager, etc.).
+## Important Policies
 
-5. **Health Check**
-   - Smoke test endpoint (`/healthz` or `/readyz`) must return **HTTP 200** in staging.
-   - Passes at least **two consecutive checks** before deployment approval.
+Refer to `CLAUDE.local.md` for comprehensive coding standards including:
+- PEP 8 style requirements and formatting with Black
+- Type hints and mypy strict checking
+- Security scanning with bandit
+- 80% minimum test coverage requirement
+- Deployment validation requirements (no `latest` tags, health checks, rollback plans)
+- Secrets management policies
 
-6. **Rollback Plan**
-   - Must exist, documented, and tested in staging.
-   - Rollback triggers automatically if metrics degrade post-deployment.
+## Branch Information
 
-### Post-Deployment Checks
-After deployment, monitor:
-- Canary or smoke test success
-- Application error rates and latency
-- Replica readiness and scaling behavior
-- Automatic rollback if SLA/SLO thresholds are exceeded
+- **Main branch**: `main`
+- **Current branch**: `additional-test-cases`
+- Always create PRs targeting `main` branch
 
-## Secrets & Policies
+## Notes for Claude Code
 
-- Store **API keys**, deploy keys, and credentials in:
-  - GitHub Secrets
-  - HashiCorp Vault
-  - AWS Secrets Manager or Azure Key Vault
-
-- **Never** print or log secrets to stdout or pipeline logs.  
-- Configure CI/CD to use masked secrets (e.g., `***` in logs).  
-- Claude’s API key (`ANTHROPIC_API_KEY`) should:
-  - Have **least privilege**
-  - Be stored securely in GitHub Secrets
-  - Have consumption monitoring (alerts on usage or cost spikes)
-- Rotate all credentials every **90 days** or per policy.
-
-## Troubleshooting Tips
-
-| Issue | Likely Cause | Resolution |
-|-------|---------------|------------|
-| `ModuleNotFoundError: No module named 'src'` | Missing `PYTHONPATH` or `src/__init__.py` | Add `PYTHONPATH=.` in test job or create `src/__init__.py` |
-| **Formatting fails** (`black`, `isort`) | Code not compliant with PEP8 or import order | Run `black .` and `isort .`, commit changes |
-| **mypy errors** | Missing or incorrect type hints | Add or correct type annotations, or document any `# type: ignore` usage |
-| **Coverage below threshold** | Uncovered code paths | Add or refactor tests to cover missed branches |
-| **Claude API errors** | Missing/invalid `ANTHROPIC_API_KEY`, network issue | Verify GitHub secret configuration and SDK version |
-| **Pipeline blocked by Claude review** | Test or coverage policy not met | Review `results.xml` and `coverage.xml` outputs, rerun after fix |
-| **Security scan fails** | Vulnerable dependency | Update `requirements.txt` or pin secure versions |
-
+- The `PYTHONPATH=.` environment variable is critical for running tests locally and in CI
+- Test reports are uploaded as artifacts in CI for Claude review analysis
+- The Claude review step has restricted tool access for security (only `gh` commands allowed)
+- Deployment only proceeds if all previous jobs (including Claude review) succeed

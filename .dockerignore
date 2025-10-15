@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+*.coverage
+coverage.xml
+
+# Tests
+tests/
+*.xml
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Documentation
+*.md
+docs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# CI/CD
+.github/
+scripts/
+
+# Terraform
+terraform/
+*.tf
+*.tfstate
+*.tfvars
+
+# Environment
+.env
+.env.local
